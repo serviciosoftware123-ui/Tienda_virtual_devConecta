@@ -1,0 +1,47 @@
+# DevConecta: tienda virtual de paquetes de software
+# Levanta todo con:  docker compose up --build
+services:
+
+  db:
+    build: ./db
+    container_name: devconecta-db
+    environment:
+      POSTGRES_USER: devconecta
+      POSTGRES_PASSWORD: devconecta
+      POSTGRES_DB: devconecta
+    volumes:
+      - datos_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devconecta -d devconecta"]
+      interval: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: devconecta-api
+    environment:
+      DB_HOST: db
+      DB_USER: devconecta
+      DB_PASSWORD: devconecta
+      DB_NAME: devconecta
+      JWT_SECRET: cambia-esta-clave-larga-y-secreta
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: devconecta-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  datos_pg:
